@@ -3,15 +3,32 @@ V := @
 
 BIN_DIR := ./bin
 RED_BOX := $(BIN_DIR)/red-box
+OPERATOR := $(BIN_DIR)/slurm_operator_main        // slurm operator to submit slurm jobs
+CONFIGURATOR := $(BIN_DIR)/configurator_main      // configurator for virtual kubelet and results POD
+RESULTS := $(BIN_DIR)/results_main                // results of finished slurm jobs
 
-LDFLAGS = -ldflags "-X main.version=`(git describe  --dirty --always 2>/dev/null || echo "unknown") \
+#LDFLAGS = -ldflags "-X main.version=`(git describe  --dirty --always 2>/dev/null || echo "unknown") \
           		| sed -e "s/^v//;s/-/_/g;s/_/-/;s/_/./g"`"
 
-all: $(RED_BOX)
+LDFLAGS = -ldflags="-extldflags=-static"
+
+all: $(RED_BOX) $(OPERATOR) $(CONFIGURATOR) $(RESULTS)
 
 $(RED_BOX):
 	@echo " GO" $@
 	$(V)go build -mod vendor ${LDFLAGS} -o $(RED_BOX) ./cmd/red-box
+
+$(OPERATOR):
+	@echo " GO" $@
+	$(V)CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor ${LDFLAGS} -o $(OPERATOR) ./cmd/operator
+
+$(CONFIGURATOR):
+	@echo " GO" $@
+	$(V)CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor ${LDFLAGS} -o $(CONFIGURATOR) ./cmd/configurator
+
+$(RESULTS):
+	@echo " GO" $@
+	$(V)CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor ${LDFLAGS} -o $(RESULTS) ./cmd/results
 
 .PHONY: clean
 clean:
